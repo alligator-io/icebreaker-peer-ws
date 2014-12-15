@@ -1,4 +1,3 @@
-var net = require('net')
 var _ = require('icebreaker')
 require('icebreaker-peer')
 var ws = require('pull-ws-server')
