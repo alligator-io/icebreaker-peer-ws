@@ -1,0 +1,31 @@
+{
+  "name": "icebreaker-peer-ws",
+  "version": "0.1.0",
+  "description": "icebreaker-peer-ws",
+  "main": "index.js",
+  "scripts": {
+    "test": "set -e; for t in test/*.js; do node $t; done"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/alligator-io/icebreaker-peer-ws.git"
+  },
+  "keywords": [
+    "icebreaker",
+    "server",
+    "client",
+    "peer",
+    "p2p",
+    "tcp",
+    "net"
+  ],
+  "author": "Markus Wunderlin",
+  "license": "MIT",
+  "readmeFilename": "README.md",
+  "dependencies": {
+    "icebreaker": "^0.4.0",
+    "icebreaker-peer": "^0.1.0",
+    "pull-ws-server": "git+https://github.com/alligator-io/pull-ws-server.git",
+    "tape": "^3.0.3"
+  }
+}
