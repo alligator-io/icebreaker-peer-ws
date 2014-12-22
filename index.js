@@ -4,16 +4,37 @@ var ws = require('pull-ws-server')
 var EventEmitter = require('events').EventEmitter
 
 var connection = function(original) {
-  if (original.socket.upgradeReq) {
-    if (original.socket.upgradeReq.connection.remotePort != null) {
-      original.port = original.socket.upgradeReq.connection.remotePort
+  var address = this.address
+  var port  = this.port
+
+  if(typeof original.address ==='object'){
+    if (original.address.port != null) {
+      port = original.address.port
     }
-    if (original.socket.upgradeReq.connection.remoteAddress != null) {
-      original.address = original.socket.upgradeReq.connection.remoteAddress
+    if (original.address.host != null) {
+      address = original.address.host
     }
   }
 
-  this.connection(original)
+  if (original.remoteAddress) {
+    if (original.remoteAddress.port != null) {
+      port = original.remoteAddress.port
+    }
+    if (original.remoteAddress.host != null) {
+      address = original.remoteAddress.host
+    }
+  }
+
+  var stream = {
+    source:original.source,
+    sink:original.sink,
+    address:address,
+    port:port
+  }
+
+  if(original.headers)stream.headers=original.headers
+
+  this.connection(stream)
 }
 
 if (!_.peers) _.mixin({ peers : {} })
