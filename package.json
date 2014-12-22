@@ -25,7 +25,9 @@
   "dependencies": {
     "icebreaker": "^0.4.0",
     "icebreaker-peer": "^0.1.0",
-    "pull-ws-server": "git+https://github.com/alligator-io/pull-ws-server.git",
+    "pull-ws-server": "git+https://github.com/alligator-io/pull-ws-server.git"
+  },
+  "devDependencies": {
     "tape": "^3.0.3"
   }
 }
