@@ -1,7 +1,10 @@
 var _ = require('icebreaker')
-require('icebreaker-peer')
+if(!_.peer)require('icebreaker-peer')
 var ws = require('pull-ws-server')
+var WebSocket = require('ws')
+var pws = require('pull-ws')
 var EventEmitter = require('events').EventEmitter
+var url = require('url')
 
 var connection = function(original) {
   var address = this.address
@@ -39,11 +42,27 @@ var connection = function(original) {
 
 if (!_.peers) _.mixin({ peers : {} })
 
+ws.connect = function (address, options) {
+  var socket = new WebSocket(
+      typeof address === 'string'? address
+      : url.format({
+          protocol: 'ws', slashes: true,
+          hostname: address.host || address.hostname,
+          port: address.port,
+          pathname: address.pathname
+        })
+      ,options)
+
+  var stream = pws(socket)
+  stream.address=address
+
+  return stream
+}
+
 _.mixin({
   ws : _.peer({
     name : 'ws',
     auto : true,
-
     start : function() {
       this.server = ws.createServer(connection.bind(this))
       this.server.on('request', function(req, res) {
