@@ -16,15 +16,14 @@
     "client",
     "peer",
     "p2p",
-    "tcp",
-    "net"
+    "ws"
   ],
   "author": "Markus Wunderlin",
   "license": "MIT",
   "readmeFilename": "README.md",
   "dependencies": {
-    "icebreaker": "^0.4.0",
-    "icebreaker-peer": "^0.1.0",
+    "icebreaker": "^0.6.0",
+    "icebreaker-peer": "^0.1.2",
     "pull-ws": "~2.1.0",
     "pull-ws-server": "git+https://github.com/alligator-io/pull-ws-server.git",
     "ws":"git://github.com/dominictarr/ws.git#590d0ea0d62b0c533cd6f26ff0e3f31f946a80db"
