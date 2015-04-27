@@ -1,6 +1,6 @@
 {
   "name": "icebreaker-peer-ws",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "icebreaker-peer-ws",
   "main": "index.js",
   "scripts": {
@@ -22,7 +22,7 @@
   "license": "MIT",
   "readmeFilename": "README.md",
   "dependencies": {
-    "icebreaker-peer": "^0.2.1",
+    "icebreaker-peer": "^0.2.2",
     "pull-ws": "^2.1.0",
     "ws": "^0.7.1"
   },
