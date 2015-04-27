@@ -1,101 +1,140 @@
 var _ = require('icebreaker')
 if(!_.peer)require('icebreaker-peer')
-var ws = require('pull-ws-server')
-var WebSocket = require('ws')
+var ws = require('ws')
 var pws = require('pull-ws')
 var EventEmitter = require('events').EventEmitter
+var http = require('http')
 var url = require('url')
+var net = require('net')
+var dns = require('dns')
+var fs = require('fs')
+var path = require('path')
 
-var connection = function(original) {
-  var address = this.address
-  var port  = this.port
+function isPath(p) {
+  return isString(p) && isNaN(p)
+}
 
-  if(typeof original.address ==='object'){
-    if (original.address.port != null) {
-      port = original.address.port
-    }
-    if (original.address.host != null) {
-      address = original.address.host
-    }
-  }
-
-  if (original.remoteAddress) {
-    if (original.remoteAddress.port != null) {
-      port = original.remoteAddress.port
-    }
-    if (original.remoteAddress.host != null) {
-      address = original.remoteAddress.host
-    }
-  }
-
-  var stream = {
-    source:original.source,
-    sink:original.sink,
-    address:address,
-    port:port
-  }
-
-  if(original.headers)stream.headers=original.headers
-
-  this.connection(stream)
+function isString(obj){
+  return typeof obj === 'string'
 }
 
 if (!_.peers) _.mixin({ peers : {} })
-
-ws.connect = function (address, options) {
-  var socket = new WebSocket(
-      typeof address === 'string'? address
-      : url.format({
-          protocol: 'ws', slashes: true,
-          hostname: address.host || address.hostname,
-          port: address.port,
-          pathname: address.pathname
-        })
-      ,options)
-
-  var stream = pws(socket)
-  stream.address=address
-
-  return stream
-}
 
 _.mixin({
   ws : _.peer({
     name : 'ws',
     auto : true,
     start : function() {
-      this.server = ws.createServer(connection.bind(this))
-      this.server.on('request', function(req, res) {
-        res.end(this.name)
-      }.bind(this))
+      var self = this
 
-      this.server.listen(typeof this.port === 'string' ? this.port : {
-        port : this.port,
-        host : this.address
-      },
-      function() {
-        this.emit('started')
-      }.bind(this))
+      this.server = http.createServer(function(res){
+        res.end(self.name)
+      })
+
+      this.server.on('error', function (err) {
+        if (isPath(self.port) && err.code === 'EADDRINUSE') {
+          var socket = net.Socket()
+
+          socket.on('error', function (err) {
+            if (err.code === 'ECONNREFUSED') {
+              fs.unlink(self.port, function (err) {
+                if (err)
+                  _(
+                    'cannot remove unix socket ' + self.port,
+                    _.log(process.exit.bind(null, 1), 'emerg')
+                  )
+                listen()
+              })
+            }
+            else if (err.code==='ENOENT') {
+              listen()
+            }
+          })
+
+          socket.connect(self.port, function () {
+            _(
+              'peer ' + self.name + ' port ' + self.port +
+              ' is already in use by another process.',
+              _.log(process.exit.bind(null, 1), 'emerg')
+            )
+          })
+
+          return
+        }
+
+        _(
+        ['cannot start peer' + self.name + ' on port ' + self.port, err],
+          _.log(process.exit.bind(null, 1), 'emerg')
+        )
+      })
+
+      var listen = function (onListening) {
+        self.server.listen(
+          self.port, isPath(self.port) ? null :
+          self.address, onListening
+        )
+      }
+
+      listen(function () {
+        if (isPath(self.port)) fs.chmod(path.join(process.cwd(),self.port), 0777)
+        self.wsServer = ws.createServer({server:self.server})
+        self.wsServer.on('connection',function(o){
+          var c = pws(o)
+          c.address = o.remoteAddress
+          c.port = o.remotePort
+          self.connection(c)
+        })
+        self.emit('started')
+      })
     },
 
     connect : function(params) {
-      if (!params.address) params.address = this.address
-      process.nextTick(function() {
-        connection.call(this,
-          ws.connect(typeof params.port === 'string' ? params.port : {
-            port : params.port,
-            host : params.address
-          })
-        )
-      }.bind(this))
+      var self = this
+      var address = {
+        protocol:isPath(params.port)?'ws+unix':'ws',
+        slashes:true
+      }
+      if(!isPath(params.port)){
+        address.hostname = params.address
+        address.port = params.port
+      }
+      else address.pathname = path.join(process.cwd(),params.port)
+
+      function connect(){
+        var c = pws(ws.connect(url.format(address)))
+        c.address = params.address
+        c.port = params.port
+        c.direction = params.direction
+        self.connection(c)
+      }
+
+      if(isString(params.address) && !net.isIP(params.address)){
+        dns.lookup(params.address,function(err,ip){
+          address.hostname=params.address=err?params.address:ip
+          connect()
+        })
+      }
+      else connect()
     },
 
-    stop : function() {
+    stop: function stop() {
+      var self = this
       try {
-        this.server.close(function() { this.emit('stopped') }.bind(this))
+        this.wsServer.close()
+        self.server.close(function close() {
+          if (Object.keys(self.connections).length > 0) {
+            process.nextTick(function () {
+              close.call(self)
+            })
+            return
+          }
+          else self.emit('stopped')
+        })
       }
       catch (e) {
-        _([ e ], _.log(function() { this.emit('stopped') }.bind(this)), 'error')
+        _([e], _.log(function () {
+          self.emit('stopped')
+        }), 'error')
       }
     }
   })
