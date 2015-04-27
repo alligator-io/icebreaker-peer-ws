@@ -105,6 +105,7 @@ _.mixin({
         c.address = params.address
         c.port = params.port
         c.direction = params.direction
+        if(params.hostname)c.hostname = params.hostname
         self.connection(c)
       }
 
