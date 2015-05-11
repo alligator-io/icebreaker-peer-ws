@@ -24,6 +24,7 @@ _.mixin({
   ws : _.peer({
     name : 'ws',
     auto : true,
+    port:6007,
     start : function() {
       var self = this
 
