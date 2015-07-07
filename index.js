@@ -119,18 +119,12 @@ _.mixin({
       else connect()
     },
 
-    stop: function stop() {
+    stop: function () {
       var self = this
       try {
         this.wsServer.close()
-        self.server.close(function close() {
-          if (Object.keys(self.connections).length > 0) {
-            process.nextTick(function () {
-              close.call(self)
-            })
-            return
-          }
-          else self.emit('stopped')
+        self.server.close(function () {
+          self.emit('stopped')
         })
       }
       catch (e) {
