@@ -1,5 +1,5 @@
 var _ = require('icebreaker')
-if(!_.peer)require('icebreaker-peer')
+var Peer = require('icebreaker-peer')
 var ws = require('ws')
 var pws = require('pull-ws')
 var EventEmitter = require('events').EventEmitter
@@ -10,29 +10,31 @@ var dns = require('dns')
 var fs = require('fs')
 var path = require('path')
 
-function isPath(p) {
-  return isString(p) && isNaN(p)
-}
-
 function isString(obj){
   return typeof obj === 'string'
 }
 
-if (!_.peers) _.mixin({ peers : {} })
+function isPath(p) {
+  return isString(p) && isNaN(p)
+}
 
-_.mixin({
-  ws : _.peer({
+function PeerWs(params){
+	  if (!(this instanceof PeerWs))
+    return new PeerWs(params);
+		var self = this;
+	var server;
+  Peer.call(this,{
     name : 'ws',
     auto : true,
     port:6007,
     start : function() {
-      var self = this
+      if(!server){
+      server = params.server||http.createServer(function(req,res){
+				res.end(self.name)
+				})
+			}
 
-      this.server = http.createServer(function(res){
-        res.end(self.name)
-      })
-
-      this.server.on('error', function (err) {
+      server.on('error', function (err) {
         if (isPath(self.port) && err.code === 'EADDRINUSE') {
           var socket = net.Socket()
 
@@ -70,7 +72,7 @@ _.mixin({
       })
 
       var listen = function (onListening) {
-        self.server.listen(
+        server.listen(
           self.port, isPath(self.port) ? null :
           self.address, onListening
         )
@@ -78,7 +80,7 @@ _.mixin({
 
       listen(function () {
         if (isPath(self.port)) fs.chmod(path.join(process.cwd(),self.port), 0777)
-        self.wsServer = ws.createServer({server:self.server})
+        self.wsServer = ws.createServer({server:server})
         self.wsServer.on('connection',function(o){
           var c = pws(o)
           c.address = o.remoteAddress
@@ -90,7 +92,6 @@ _.mixin({
     },
 
     connect : function(params) {
-      var self = this
       var address = {
         protocol:isPath(params.port)?'ws+unix':'ws',
         slashes:true
@@ -102,7 +103,7 @@ _.mixin({
       else address.pathname = path.join(process.cwd(),params.port)
 
       function connect(){
-        var c = pws(ws.connect(url.format(address)))
+			 var c = pws(ws.connect(url.format(address)))
         c.address = params.address
         c.port = params.port
         c.direction = params.direction
@@ -120,10 +121,9 @@ _.mixin({
     },
 
     stop: function () {
-      var self = this
       try {
         this.wsServer.close()
-        self.server.close(function () {
+     		server.close(function () {
           self.emit('stopped')
         })
       }
@@ -133,5 +133,8 @@ _.mixin({
         }, 'error'))
       }
     }
-  })
-}, _.peers)
+  },params);
+}
+
+var proto = PeerWs.prototype = Object.create(Peer.prototype)
+module.exports = proto.constructor = PeerWs

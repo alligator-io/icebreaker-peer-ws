@@ -1,11 +1,11 @@
 var test = require('tape')
 var _ = require('icebreaker')
-require('../index.js')
+var PeerWs = require('../index.js')
 
 var net = require('net')
 
-var peer1 = _.peers.ws({port:'./test1.socket'})
-var peer2 = _.peers.ws({port:'./test2.socket'})
+var peer1 = PeerWs({port:8982})
+var peer2 = PeerWs({port:8983})
 
 test('start', function (t) {
   peer1.once('started', function () {
@@ -24,7 +24,7 @@ test('connect: peer1->peer2', function (t) {
     t.equal(typeof connection.sink, 'function')
     t.equal(typeof connection.address, 'string')
     t.equal(typeof connection.id, 'string')
-    t.equal(typeof connection.port, 'string')
+    t.equal(typeof connection.port, 'number')
     t.equal(connection.direction, 1)
     console.log(connection.direction)
     t.ok(net.isIP(connection.address))

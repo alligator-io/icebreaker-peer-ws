@@ -1,9 +1,10 @@
 var test = require('tape')
 var _ = require('icebreaker')
 require('../index.js')
+var PeerWs = require('../index.js')
 
 test('_.peers.ws should emit an error',function(t){
-  _.peers.ws({port:'./test2.socket'})
+  PeerWs({port:'./test2.socket'})
   .on('connection',function(connection){
     var self = this
     console.log('connection ',connection.address,':',connection.port)
